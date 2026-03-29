@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game with Chat Tab</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      overflow: hidden;
+    }
+
+    /* Example game area */
+    #gameArea {
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(to bottom, #1e1e1e, #2b2b2b);
+      position: relative;
+    }
+
+    /* Chat container */
+    #chatTab {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      width: 280px;
+      height: 360px;
+      background: lab(77.93% 12.74 -15.81);
+      border: 2px solid lch(81.62% 23.46 309.08);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 12px #ffffff66;
+    }
+
+    #chatHeader {
+      padding: 10px;
+      background: lch(78.01% 39.83 302.88);
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    #chatMessages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+
+    .message {
+      margin-bottom: 8px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      max-width: 85%;
+    }
+
+    .player {
+      background: #2d6cdf;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+
+    #chatInputArea {
+      display: flex;
+      border-top: 1px solid hsl(280, 45%, 55%);
+    }
+
+    #chatInput {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      outline: none;
+      background: hwb(296 76% 13%);
+      color: white;
+      border-bottom-left-radius: 10px;
+    }
+
+    #sendBtn {
+      padding: 10px 14px;
+      border: none;
+      background: hsl(291, 54%, 79%);
+      color: white;
+      cursor: pointer;
+      border-bottom-right-radius: 10px;
+    }
+
+    #sendBtn:hover {
+      background: hsl(295, 44%, 43%);
+    }
+  </style>
+</head>
+<body>
+  <div id="gameArea">
+    <div id="chatTab">
+      <div id="chatHeader">Chat</div>
+
+      <div id="chatMessages">
+        <div class="message npc">Welcome to the game.</div>
+      </div>
+
+      <div id="chatInputArea">
+        <input type="text" id="chatInput" placeholder="Type a message..." />
+        <button id="sendBtn">Send</button>
+
+<audio id="bgMusic" loop>
+    <source src="CP_coffee.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+  const music = document.getElementById("bgMusic");
+
+  function startMusic() {
+    music.play().catch(err => console.log("Autoplay blocked:", err));
+    document.removeEventListener("click", startMusic);
+    document.removeEventListener("keydown", startMusic);
+  }
+
+  document.addEventListener("click", startMusic);
+  document.addEventListener("keydown", startMusic);
+</script> 
+        
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chatMessages = document.getElementById("chatMessages");
+    const chatInput = document.getElementById("chatInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    function addMessage(text, sender) {
+      const msg = document.createElement("div");
+      msg.classList.add("message", sender);
+      msg.textContent = text;
+      chatMessages.appendChild(msg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (text === "") return;
+
+      addMessage(text, "player");
+      chatInput.value = "";
+
+    //   // Example NPC reply
+    //   setTimeout(() => {
+    //     addMessage("You said: " + text, "npc");
+    //   }, 500);
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+
+    chatInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
