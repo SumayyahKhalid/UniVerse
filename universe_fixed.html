@@ -6,6 +6,32 @@
 <title>UniVerse – Wilfrid Laurier Study Lounge with Moving NPCs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet"/>
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDg-LIAhU1G7s5WkNBmJPdPgLXsMBW2awY",
+    authDomain: "universe-64928.firebaseapp.com",
+    projectId: "universe-64928",
+    storageBucket: "universe-64928.firebasestorage.app",
+    messagingSenderId: "761476404912",
+    appId: "1:761476404912:web:974f73b813c4f066c3cd75"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window.firebaseAuth = auth;
+  window.firebaseDB = db;
+  window.firebaseCreateUser = createUserWithEmailAndPassword;
+  window.firebaseSignIn = signInWithEmailAndPassword;
+  window.firebaseSetDoc = setDoc;
+  window.firebaseDoc = doc;
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -295,7 +321,7 @@ kbd{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);borde
       <button class="btn-hero" onclick="showAuth('signup')">Create Account</button>
       <button class="btn-ghost" onclick="showAuth('login')">Sign In</button>
     </div>
-    <p class="land-hint">Wilfrid Laurier University · @mylaurier.ca emails preferred (demo accepts any valid email)</p>
+    <p class="land-hint">Wilfrid Laurier University · @mylaurier.ca emails only</p>
   </div>
 </div>
 
@@ -306,7 +332,7 @@ kbd{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);borde
     <h2 class="auth-title" id="auth-title">Join UniVerse</h2>
     <div class="auth-form" id="auth-form">
       <input class="auth-input" id="auth-name" type="text" placeholder="Display name (e.g. HawkCoder99)"/>
-      <input class="auth-input" id="auth-email" type="email" placeholder="Email (any email works in demo)"/>
+      <input class="auth-input" id="auth-email" type="email" placeholder="Laurier email (@mylaurier.ca)"/>
       <input class="auth-input" id="auth-pass" type="password" placeholder="Password (min 6 chars)"/>
       <select class="auth-input" id="auth-degree">
         <option value="">Select your degree program…</option>
@@ -323,7 +349,7 @@ kbd{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);borde
       <button class="auth-btn" id="auth-submit-btn" onclick="doAuth()">Create Account</button>
     </div>
     <p class="auth-switch">Already have an account? <button class="auth-link" onclick="toggleAuthMode()">Sign In</button></p>
-    <p class="auth-note">Demo mode: any email + password (6+ chars) works.<br>Use @mylaurier.ca for the full Laurier experience!</p>
+    <p class="auth-note">Only @mylaurier.ca emails are accepted.</p>
   </div>
 </div>
 
@@ -723,7 +749,7 @@ function toggleAuthMode() {
   showAuth(S.authMode === 'signup' ? 'login' : 'signup')
 }
 
-function doAuth() {
+async function doAuth() {
   const email  = document.getElementById('auth-email').value.trim()
   const pass   = document.getElementById('auth-pass').value
   const name   = document.getElementById('auth-name').value.trim()
@@ -732,25 +758,48 @@ function doAuth() {
   errEl.textContent = ''
 
   if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email.'; return }
+  
+  if (!email.endsWith('@mylaurier.ca')) { 
+    errEl.textContent = 'You must use a Laurier email (@mylaurier.ca) to join.'; 
+    return 
+  }
+  
   if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return }
   if (S.authMode === 'signup' && !name) { errEl.textContent = 'Please enter a display name.'; return }
 
-  S.player.email  = email
-  S.player.name   = S.authMode === 'signup' ? name : (localStorage.getItem('uv_name') || 'Hawk' + Math.floor(Math.random() * 9999))
-  S.player.degree = degree || 'cs'
-  if (S.authMode === 'signup') localStorage.setItem('uv_name', S.player.name)
-
   try {
-    const saved = localStorage.getItem('uv_save')
-    if (saved) {
-      const d = JSON.parse(saved)
-      S.player.xp        = d.xp        || 0
-      S.player.streak    = d.streak    || 0
-      S.player.lastStudy = d.lastStudy || null
+    let user
+    if (S.authMode === 'signup') {
+      const cred = await window.firebaseCreateUser(window.firebaseAuth, email, pass)
+      user = cred.user
+      await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDB, 'users', user.uid), {
+        email: email, name: name, degree: degree || 'cs',
+        createdAt: new Date().toISOString()
+      })
+    } else {
+      const cred = await window.firebaseSignIn(window.firebaseAuth, email, pass)
+      user = cred.user
     }
-  } catch(e) {}
-
-  startGame()
+    S.player.email  = email
+    S.player.name   = S.authMode === 'signup' ? name : (localStorage.getItem('uv_name') || 'Hawk' + Math.floor(Math.random() * 9999))
+    S.player.degree = degree || 'cs'
+    if (S.authMode === 'signup') localStorage.setItem('uv_name', S.player.name)
+    try {
+      const saved = localStorage.getItem('uv_save')
+      if (saved) {
+        const d = JSON.parse(saved)
+        S.player.xp = d.xp || 0
+        S.player.streak = d.streak || 0
+        S.player.lastStudy = d.lastStudy || null
+      }
+    } catch(e) {}
+    startGame()
+  } catch (err) {
+    if (err.code === 'auth/email-already-in-use') errEl.textContent = 'Account already exists. Try signing in!'
+    else if (err.code === 'auth/wrong-password') errEl.textContent = 'Wrong password. Try again!'
+    else if (err.code === 'auth/user-not-found') errEl.textContent = 'No account found. Sign up first!'
+    else errEl.textContent = err.message
+  }
 }
 
 function doSignOut() {
